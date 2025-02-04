@@ -19,54 +19,31 @@ Elle utilise un modèle de classification pour déterminer si une tumeur est :
 ---
 
 ### Instructions
-1. Ajustez les curseurs correspondant aux caractéristiques de la tumeur pour une prédiction individuelle, ou
+1. Remplissez les champs correspondant aux caractéristiques de la tumeur pour une prédiction individuelle, ou
 2. Téléchargez un fichier CSV contenant plusieurs observations pour obtenir des prédictions groupées.
 
 ### Attention
 Les résultats sont basés sur un modèle préentraîné et ne remplacent **en aucun cas** un avis médical.
 """)
 
-# Liste des caractéristiques avec leurs plages de valeurs typiques
-feature_ranges = {
-    "texture_mean": (9.0, 39.0),
-    "smoothness_mean": (0.05, 0.15),
-    "compactness_mean": (0.02, 0.35),
-    "concave points_mean": (0.0, 0.2),
-    "symmetry_mean": (0.12, 0.3),
-    "fractal_dimension_mean": (0.04, 0.1),
-    "texture_se": (0.3, 4.9),
-    "area_se": (6.0, 550.0),
-    "smoothness_se": (0.002, 0.03),
-    "compactness_se": (0.002, 0.15),
-    "concavity_se": (0.0, 0.4),
-    "concave points_se": (0.0, 0.05),
-    "symmetry_se": (0.008, 0.08),
-    "fractal_dimension_se": (0.001, 0.03),
-    "texture_worst": (12.0, 50.0),
-    "area_worst": (200.0, 2500.0),
-    "smoothness_worst": (0.07, 0.22),
-    "compactness_worst": (0.025, 1.1),
-    "concavity_worst": (0.0, 1.25),
-    "concave points_worst": (0.0, 0.4),
-    "symmetry_worst": (0.15, 0.6),
-    "fractal_dimension_worst": (0.05, 0.25),
-}
-
 # Section : Prédiction pour une observation unique
 st.header("Prédiction pour une observation unique")
 
-# Création des entrées avec des sliders
+# Liste des caractéristiques (ajustez selon votre dataset)
+features = [
+    "texture_mean", "smoothness_mean", "compactness_mean", "concave points_mean", "symmetry_mean",
+    "fractal_dimension_mean", "texture_se", "area_se", "smoothness_se", "compactness_se",
+    "concavity_se", "concave points_se", "symmetry_se", "fractal_dimension_se", "texture_worst",
+    "area_worst", "smoothness_worst", "compactness_worst", "concavity_worst", "concave points_worst",
+    "symmetry_worst", "fractal_dimension_worst"
+]
+
+# Créer des champs pour chaque caractéristique
 user_input = {}
 col1, col2 = st.columns(2)
-
-for i, (feature, (min_val, max_val)) in enumerate(feature_ranges.items()):
+for i, feature in enumerate(features):
     with col1 if i % 2 == 0 else col2:
-        user_input[feature] = st.slider(
-            f"{feature.replace('_', ' ').capitalize()}",
-            min_value=min_val,
-            max_value=max_val,
-            value=(min_val + max_val) / 2
-        )
+        user_input[feature] = st.number_input(f"{feature.capitalize()}", value=0.0)
 
 # Convertir les données utilisateur en DataFrame
 user_input_df = pd.DataFrame([user_input])
@@ -82,7 +59,7 @@ if st.button("Prédire"):
     fig, ax = plt.subplots()
     ax.bar(["Bénigne", "Maligne"], probabilities, color=["green", "red"])
     ax.set_ylabel("Probabilité")
-    st.pyplot(fig) 
+    st.pyplot(fig)
 
 # Section : Prédiction pour un fichier CSV
 st.header("Prédiction pour un fichier CSV")
@@ -97,9 +74,9 @@ if uploaded_file is not None:
     st.dataframe(data.head())
 
     # Vérification de la compatibilité avec le modèle
-    if all(feature in data.columns for feature in feature_ranges.keys()):
+    if all(feature in data.columns for feature in features):
         if st.button("Prédire pour le fichier CSV"):
-            predictions = model.predict(data[list(feature_ranges.keys())])
+            predictions = model.predict(data[features])
             data["Prédiction"] = ["Maligne" if p == 1 else "Bénigne" for p in predictions]
             st.write("### Résultats des prédictions :")
             st.dataframe(data)
@@ -110,22 +87,6 @@ if uploaded_file is not None:
             sns.countplot(x=data["Prédiction"], palette={"Bénigne": "green", "Maligne": "red"}, ax=ax)
             ax.set_title("Nombre de cas bénins vs malins")
             ax.set_ylabel("Nombre de cas")
-            st.pyplot(fig)
-
-            # Matrice de corrélation
-            st.subheader("Matrice de Corrélation")
-            corr = data[list(feature_ranges.keys())].corr()
-            fig, ax = plt.subplots(figsize=(12, 8))
-            sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
-            ax.set_title("Corrélation entre les différentes caractéristiques")
-            st.pyplot(fig)
-
-            # Boxplot des caractéristiques
-            st.subheader("Boxplot des caractéristiques")
-            fig, ax = plt.subplots(figsize=(12, 8))
-            sns.boxplot(data=data[list(feature_ranges.keys())], ax=ax)
-            ax.set_title("Boxplot des caractéristiques")
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
             st.pyplot(fig)
 
     else:
