@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Chargement du modèle
-model = joblib.load("modell_svm.pkl")
+modele = joblib.load("modell_svm.pkl")
 
 # Titre et présentation de l'application
 st.title("Application de Prédiction - Cancer du Sein")
 st.markdown("""
-Bienvenue dans cette application interactive pour la prédiction du cancer du sein. 
+Bienvenue dans cette application interactive de prédiction du cancer du sein.
 Elle utilise un modèle de classification pour déterminer si une tumeur est :
 - **Bénigne** (non cancéreuse), ou
 - **Maligne** (cancéreuse).
@@ -27,8 +27,8 @@ Les résultats sont basés sur un modèle préentraîné et ne remplacent **en a
 """)
 
 # Liste des caractéristiques avec leurs plages de valeurs typiques
-feature_ranges = {
-    "texture_mean": (9.0, 39.0),
+plages_caracteristiques = {
+   "texture_mean": (9.0, 39.0),
     "smoothness_mean": (0.05, 0.15),
     "compactness_mean": (0.02, 0.35),
     "concave points_mean": (0.0, 0.2),
@@ -55,75 +55,75 @@ feature_ranges = {
 # Section : Prédiction pour une observation unique
 st.header("Prédiction pour une observation unique")
 
-# Création des entrées avec des sliders
-user_input = {}
+# Création des entrées avec des curseurs
+saisie_utilisateur = {}
 col1, col2 = st.columns(2)
 
-for i, (feature, (min_val, max_val)) in enumerate(feature_ranges.items()):
+for i, (caracteristique, (val_min, val_max)) in enumerate(plages_caracteristiques.items()):
     with col1 if i % 2 == 0 else col2:
-        user_input[feature] = st.slider(
-            f"{feature.replace('_', ' ').capitalize()}",
-            min_value=min_val,
-            max_value=max_val,
-            value=(min_val + max_val) / 2
+        saisie_utilisateur[caracteristique] = st.slider(
+            f"{caracteristique.replace('_', ' ').capitalize()}",
+            min_value=val_min,
+            max_value=val_max,
+            value=(val_min + val_max) / 2
         )
 
 # Convertir les données utilisateur en DataFrame
-user_input_df = pd.DataFrame([user_input])
+saisie_utilisateur_df = pd.DataFrame([saisie_utilisateur])
 
 # Prédiction pour une observation unique
 if st.button("Prédire"):
-    prediction = model.predict(user_input_df)
-    result = "Maligne (cancéreuse)" if prediction[0] == 1 else "Bénigne (non cancéreuse)"
-    st.write(f"### Résultat de la prédiction : **{result}**")
+    prediction = modele.predict(saisie_utilisateur_df)
+    resultat = "Maligne (cancéreuse)" if prediction[0] == 1 else "Bénigne (non cancéreuse)"
+    st.write(f"### Résultat de la prédiction : **{resultat}**")
 
     # Afficher les probabilités sous forme de graphique
-    probabilities = model.predict_proba(user_input_df)[0]
+    probabilites = modele.predict_proba(saisie_utilisateur_df)[0]
     fig, ax = plt.subplots()
-    ax.bar(["Bénigne", "Maligne"], probabilities, color=["green", "red"])
+    ax.bar(["Bénigne", "Maligne"], probabilites, color=["green", "red"])
     ax.set_ylabel("Probabilité")
-    st.pyplot(fig) 
+    st.pyplot(fig)
 
 # Section : Prédiction pour un fichier CSV
 st.header("Prédiction pour un fichier CSV")
 
 # Téléchargement du fichier CSV
-uploaded_file = st.file_uploader("Téléchargez un fichier CSV contenant les caractéristiques des tumeurs", type=["csv"])
+fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV contenant les caractéristiques des tumeurs", type=["csv"])
 
-if uploaded_file is not None:
+if fichier_telecharge is not None:
     # Chargement et affichage des données
-    data = pd.read_csv(uploaded_file)
+    donnees = pd.read_csv(fichier_telecharge)
     st.write("### Aperçu des données chargées :")
-    st.dataframe(data.head())
+    st.dataframe(donnees.head())
 
     # Vérification de la compatibilité avec le modèle
-    if all(feature in data.columns for feature in feature_ranges.keys()):
+    if all(caracteristique in donnees.columns for caracteristique in plages_caracteristiques.keys()):
         if st.button("Prédire pour le fichier CSV"):
-            predictions = model.predict(data[list(feature_ranges.keys())])
-            data["Prédiction"] = ["Maligne" if p == 1 else "Bénigne" for p in predictions]
+            predictions = modele.predict(donnees[list(plages_caracteristiques.keys())])
+            donnees["Prédiction"] = ["Maligne" if p == 1 else "Bénigne" for p in predictions]
             st.write("### Résultats des prédictions :")
-            st.dataframe(data)
+            st.dataframe(donnees)
 
             # Visualisation de la répartition des prédictions
             st.subheader("Distribution des prédictions")
             fig, ax = plt.subplots()
-            sns.countplot(x=data["Prédiction"], palette={"Bénigne": "green", "Maligne": "red"}, ax=ax)
+            sns.countplot(x=donnees["Prédiction"], palette={"Bénigne": "green", "Maligne": "red"}, ax=ax)
             ax.set_title("Nombre de cas bénins vs malins")
             ax.set_ylabel("Nombre de cas")
             st.pyplot(fig)
 
             # Matrice de corrélation
             st.subheader("Matrice de Corrélation")
-            corr = data[list(feature_ranges.keys())].corr()
+            correlation = donnees[list(plages_caracteristiques.keys())].corr()
             fig, ax = plt.subplots(figsize=(12, 8))
-            sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
+            sns.heatmap(correlation, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
             ax.set_title("Corrélation entre les différentes caractéristiques")
             st.pyplot(fig)
 
             # Boxplot des caractéristiques
             st.subheader("Boxplot des caractéristiques")
             fig, ax = plt.subplots(figsize=(12, 8))
-            sns.boxplot(data=data[list(feature_ranges.keys())], ax=ax)
+            sns.boxplot(data=donnees[list(plages_caracteristiques.keys())], ax=ax)
             ax.set_title("Boxplot des caractéristiques")
             ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
             st.pyplot(fig)
